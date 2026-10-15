@@ -538,15 +538,17 @@ export function renderBanner(
 
   const enabledCategories = resolveEnabledCategories(config);
   const nonEssential = nonEssentialFor(enabledCategories);
+  const showManagePreferences = config.banner_config?.showManagePreferences !== false
+    || openOptions?.showCategoriesInitially === true;
 
   shadow.innerHTML = `
     <style></style>
     <div class="cmp-overlay-bg"></div>
-    <div class="consentos-banner" role="dialog" aria-label="${escapeHtml(t.title)}" aria-labelledby="${titleId}" aria-describedby="${descId}" aria-modal="true">
+    <div class="consentos-banner" role="dialog" aria-label="${escapeHtml(t.title || t.managePreferences)}" ${t.title ? `aria-labelledby="${titleId}"` : ''} aria-describedby="${descId}" aria-modal="true">
       <div class="consentos-banner__content">
         ${renderLogo(config)}
         <div class="consentos-banner__text">
-          <p class="consentos-banner__title" id="${titleId}">${escapeHtml(t.title)}</p>
+          ${t.title ? `<p class="consentos-banner__title" id="${titleId}">${escapeHtml(t.title)}</p>` : ''}
           <p class="consentos-banner__description" id="${descId}">
             ${renderDescription(t.description, config)}
           </p>
@@ -559,9 +561,9 @@ export function renderBanner(
           <button class="cmp-btn cmp-btn--secondary" data-action="reject" type="button">
             ${escapeHtml(t.rejectAll)}
           </button>
-          <button class="cmp-btn cmp-btn--secondary" data-action="settings" type="button" aria-expanded="false" aria-controls="consentos-categories">
+          ${showManagePreferences ? `<button class="cmp-btn cmp-btn--secondary" data-action="settings" type="button" aria-expanded="false" aria-controls="consentos-categories">
             ${escapeHtml(t.managePreferences)}
-          </button>
+          </button>` : ''}
           <button class="cmp-btn cmp-btn--primary" data-action="accept" type="button">
             ${escapeHtml(t.acceptAll)}
           </button>
@@ -575,13 +577,13 @@ export function renderBanner(
   // Attach event listeners
   const banner = shadow.querySelector('.consentos-banner') as HTMLElement;
   const categoriesDiv = shadow.querySelector('#consentos-categories') as HTMLElement;
-  const settingsBtn = shadow.querySelector('[data-action="settings"]') as HTMLElement;
+  const settingsBtn = shadow.querySelector('[data-action="settings"]') as HTMLElement | null;
 
   // Hide or show the category toggles depending on entry mode.
   // Opening via ``showPreferences`` lands directly on the toggles.
   const startWithCategories = openOptions?.showCategoriesInitially === true;
   categoriesDiv.style.display = startWithCategories ? 'block' : 'none';
-  settingsBtn.setAttribute('aria-expanded', startWithCategories ? 'true' : 'false');
+  settingsBtn?.setAttribute('aria-expanded', startWithCategories ? 'true' : 'false');
 
   // Pre-fill category checkboxes from existing consent when re-opened.
   if (openOptions?.prefillCategories) {
@@ -629,7 +631,7 @@ export function renderBanner(
       } else if (action === 'settings') {
         const isHidden = categoriesDiv.style.display === 'none';
         categoriesDiv.style.display = isHidden ? 'block' : 'none';
-        settingsBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        settingsBtn?.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
         announce(liveRegion, isHidden ? t.managePreferences : t.title);
       } else if (action === 'save') {
         const accepted = getSelectedCategories(shadow);
@@ -1240,6 +1242,7 @@ export function getBannerStyles(config: SiteConfig): string {
 
     .consentos-banner {
       ${getPositionCss(bc)}
+      color-scheme: light;
       background: ${bg};
       color: ${text};
       font-family: ${font}, sans-serif;
@@ -1253,7 +1256,25 @@ export function getBannerStyles(config: SiteConfig): string {
     .consentos-banner__content {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 20px 24px;
+      padding: 12px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 24px;
+    }
+
+    .consentos-banner__text {
+      flex: 1 1 320px;
+    }
+
+    .consentos-banner__text .consentos-banner__description {
+      margin-bottom: 0;
+    }
+
+    .consentos-banner__categories,
+    .cmp-cookie-count,
+    .cmp-logo {
+      flex-basis: 100%;
     }
 
     .cmp-logo {
@@ -1368,11 +1389,26 @@ export function getBannerStyles(config: SiteConfig): string {
     }
 
     @media (max-width: 640px) {
+      .consentos-banner__content {
+        padding: 12px 16px;
+      }
+      .consentos-banner__title {
+        font-size: 15px;
+        margin-bottom: 4px;
+      }
+      .consentos-banner__description {
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
       .consentos-banner__actions {
-        flex-direction: column;
+        flex-basis: 100%;
+        flex-wrap: nowrap;
+        gap: 8px;
       }
       .cmp-btn {
-        width: 100%;
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 13px;
         text-align: center;
       }
     }
